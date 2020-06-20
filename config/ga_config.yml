@@ -1,0 +1,5 @@
+genetic_algorithm:
+    iteration_time: 100
+    station_count: 20
+    bike_total_count: 800
+    crossover_type: single
