@@ -10,8 +10,8 @@ object (2) is dismissed for now
 
 - bike amount at each station as a vector, population of 300 at first.
 
-- constraint $\sum\limits_{i}^{n} x_i=800$
-- constraint $x_i \le l_i$ where $l_i$ is the number of docks at each station 
+- constraint <img src="https://latex.codecogs.com/gif.latex?\sum_{i=1}^{n}x_i=800" title="\sum_{i=1}^{n}x_i=800" />
+- constraint<img src="https://latex.codecogs.com/gif.latex?x_i&space;\le&space;l_i" title="x_i \le l_i" />  , where <img src="https://latex.codecogs.com/gif.latex?l_i" title="l_i" /> is the number of docks at each station 
 
 ## selection
 
