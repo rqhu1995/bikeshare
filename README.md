@@ -2,7 +2,7 @@
 
 Optimized using model provided in paper [综合考量借还车需求与调度成本的公共自行车调度优化模型.pdf](https://dl3.pushbulletusercontent.com/sAfuacFivpas1rKHCnVtl4aoqVgnK56d/综合考量借还车需求与调度成本的公共自行车调度优化模型.pdf)
 
-<img src="/Users/hurunqiu/Library/Application Support/typora-user-images/image-20200620215455778.png" alt="image-20200620215455778" style="zoom:50%;" />
+<img src="https://dl3.pushbulletusercontent.com/Kn4IpJUiALil03i7bScfbH3O6vPZtywz/image.png" alt="image-20200620215455778" style="zoom:50%;" />
 
 object (2) is dismissed for now
 
@@ -33,7 +33,7 @@ GA also generate solution with 502, with frequency of once in every 20 times.
 
 Plot of fitness value change according to iteration time (example with solution 502):
 
-<img src="https://tva1.sinaimg.cn/large/007S8ZIlly1gfz3tl5d30j312w0u041j.jpg" alt="image-20200620220422959" style="zoom:50%;" />
+<img src="https://dl3.pushbulletusercontent.com/fSY3ZsmzaSqeRncClTkIqVtIHwOU2SP1/image.png" alt="image-20200620220422959" style="zoom:50%;" />
 
 # Model 2: Consider Truck Scheduling 
 
