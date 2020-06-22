@@ -1,5 +1,8 @@
 genetic_algorithm:
-    iteration_time: 100
+    iteration_time: 10
     station_count: 20
     bike_total_count: 800
     crossover_type: single
+    truck_count: 2
+    truck_capacity: 100
+    phi: 50
