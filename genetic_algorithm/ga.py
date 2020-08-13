@@ -1,8 +1,10 @@
 import conf_reader as conf
 from database import cluster_info
-from sko.GA import GA, selection
+from sko.GA import GA
 from static_bikeshare.rebalancing_route import customized_mutation, customized_crossover, fitness_function_rebalancing, \
     generate_feasible_population
+
+selected_cluster = int(conf.get_val('model_param', 'selected_cluster'))
 
 
 def config_ga(fitness_fun, lower_bound=None, upper_bound=None, constraint_ueq=None, constraint_eq=None):
@@ -30,9 +32,9 @@ def ga_begin(ga):
     return best_x, best_y, ga
 
 
-all_stations = [station['station_id'] for station in cluster_info[3]]
+all_stations = [station['station_id'] for station in cluster_info[conf.get_val('model_param', 'selected_cluster')]]
 ga_instance = config_ga(fitness_function_rebalancing)
 ga_instance.Chrom = generate_feasible_population(all_stations, int(conf.get_val('model_param', 'truck_count')),
                                                  int(conf.get_val('ga_param', 'population_size')))
-print(ga_instance.Chrom.shape)
+# print(ga_instance.Chrom.shape)
 ga_begin(ga_instance)

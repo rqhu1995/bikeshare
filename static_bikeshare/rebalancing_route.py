@@ -1,15 +1,20 @@
-from database import cluster_info, station_info
-from more_itertools import pairwise
-from database import max_capacity, initial_bike, distance_matrix
-import conf_reader as conf
-import numpy as np
-from static_bikeshare.demand_calculation import user_satisfaction
 import json
+
+import numpy as np
+from geopy.distance import geodesic
+from more_itertools import pairwise
+from numpyencoder import NumpyEncoder
+import conf_reader as conf
+from database import cluster_info, station_info
+from database import max_capacity, initial_bike, distance_matrix, cluster_center
+from static_bikeshare.demand_calculation import user_satisfaction
+
 truck_count = int(conf.get_val('model_param', 'truck_count'))
 truck_capacity = int(conf.get_val('model_param', 'truck_capacity'))
 truck_velocity = int(conf.get_val('model_param', 'truck_velocity'))
 time_cost = int(conf.get_val('model_param', 'time_cost'))
-station_list = [station['station_id'] for station in cluster_info[3]]
+selected_cluster = int(conf.get_val('model_param', 'selected_cluster'))
+station_list = [station['station_id'] for station in cluster_info[selected_cluster]]
 crossover_rate = float(conf.get_val('ga_param', 'crossover_rate'))
 mutation_rate = float(conf.get_val('ga_param', 'mutation_rate'))
 pop_size = int(conf.get_val('ga_param', 'population_size'))
@@ -42,13 +47,21 @@ def truck_route_traverse(routes):
                 route_info['actual_allocation'].append(-pickup)
             route_info['distance_time'] += distance_matrix[station][next_station] / truck_velocity
             route_info['working_time'] += 1
+        # print(cluster_center[selected_cluster])
+        dist_center_to_first = geodesic(
+            (station_info[route[0]]['latitude'], station_info[route[0]]['longitude']),
+            cluster_center[selected_cluster]).m
+        # print(dist_center_to_first)
+        route_info['distance_time'] += 2 * dist_center_to_first / truck_velocity
+
         route_result.append(route_info)
-    # with open('E:\\bikeshare\\route_info.json', 'a+', encoding='utf-8') as fp_route_info:
-    #     json.dump(route_result, fp_route_info)
+    with open('/Users/hurunqiu/project/static_ffbs/bikeshare/route_info.json', 'a+', encoding='utf-8') as fp_route_info:
+        json.dump(route_result, fp_route_info, cls=NumpyEncoder)
     return allocation, route_result
 
 
 def fitness_function_rebalancing(chrom):
+    # print(chrom)
     """
     一条路线确定好后，完整的调度成本计算
     :param routes -- route数组的list
@@ -159,8 +172,10 @@ def customized_crossover(algorithm):
         new_chrome_1, new_chrome_2 = ordered_cross_over(chrom_cpy_1, chrom_cpy_2)
         counter = 0
         while counter < truck_count - 1:
-            new_chrome_1 = np.insert(new_chrome_1, (counter + 1) * (len(new_chrome_1) + counter) // truck_count, -counter)
-            new_chrome_2 = np.insert(new_chrome_2, (counter + 1) * (len(new_chrome_2) + counter) // truck_count, -counter)
+            new_chrome_1 = np.insert(new_chrome_1, (counter + 1) * (len(new_chrome_1) + counter) // truck_count,
+                                     -counter)
+            new_chrome_2 = np.insert(new_chrome_2, (counter + 1) * (len(new_chrome_2) + counter) // truck_count,
+                                     -counter)
             counter += 1
         algorithm.Chrom[selected_chrom_id], \
         algorithm.Chrom[selected_chrom_id * 2] = \

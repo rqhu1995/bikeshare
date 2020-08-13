@@ -2631,6 +2631,12 @@ initial_bike = np.array([25, 40, 27, 11, 6, 14, 23, 115, 29, 77, 15, 26, 32,
                          31, 46, 35, 26, 40, 13, 2, 56, 31, 35, 22, 25, 23,
                          11])
 
-distance_matrix = pd.read_csv("E:\\bikeshare\\resources\\data_set\\station_dist_matrix_300.csv").to_numpy()
+# pref = 'E:\\bikeshare\\resources\\data_set\\'
+pref = '~/project/static_ffbs/bikeshare/resources/data_set/'
 
-print(max_capacity[0])
+distance_matrix = pd.read_csv(pref + "station_dist_matrix_300.csv").to_numpy()
+
+cluster_center = [(32.04621552, 118.7931528),
+                  (32.02221423, 118.784779),
+                  (32.06852986, 118.7731944),
+                  (32.04779189, 118.7724109)]

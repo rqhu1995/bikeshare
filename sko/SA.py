@@ -4,8 +4,10 @@
 # @Author  : github.com/guofei9987
 
 import numpy as np
-from .base import SkoBase
+
 from sko.operators import mutation
+from .base import SkoBase
+import conf_reader as conf
 
 
 class SimulatedAnnealingBase(SkoBase):
@@ -70,6 +72,7 @@ class SimulatedAnnealingBase(SkoBase):
         stay_counter = 0
         while True:
             for i in range(self.L):
+                # print('iteration ' + str(i) +' running...')
                 x_new = self.get_new_x(x_current)
                 y_new = self.func(x_new)
 
@@ -79,7 +82,7 @@ class SimulatedAnnealingBase(SkoBase):
                     x_current, y_current = x_new, y_new
                     if y_new < self.best_y:
                         self.best_x, self.best_y = x_new, y_new
-
+            print('current temperature:' + str(self.T))
             self.iter_cycle += 1
             self.cool_down()
             self.best_y_history.append(self.best_y)
@@ -187,7 +190,8 @@ class SA_TSP(SimulatedAnnealingBase):
         self.T = self.T_max / (1 + np.log(1 + self.iter_cycle))
 
     def get_new_x(self, x):
-        x_new = x.copy()
+        truck_count = int(conf.get_val('model_param', 'truck_count'))
+        x_new = x[x > 0].copy()
         new_x_strategy = np.random.randint(3)
         if new_x_strategy == 0:
             x_new = mutation.swap(x_new)
@@ -195,5 +199,8 @@ class SA_TSP(SimulatedAnnealingBase):
             x_new = mutation.reverse(x_new)
         elif new_x_strategy == 2:
             x_new = mutation.transpose(x_new)
-
+        counter = 0
+        while counter < truck_count - 1:
+            x_new = np.insert(x_new, (counter + 1) * len(x_new + counter) // truck_count, -counter)
+            counter += 1
         return x_new
