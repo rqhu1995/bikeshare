@@ -22,6 +22,7 @@ station_count = int(conf.get_val('model_param', 'station_count'))
 
 
 def truck_route_traverse(routes):
+    # print(routes)
     allocation = initial_bike
     route_result = []
     for route in routes:
@@ -120,6 +121,7 @@ def generate_feasible_population(all_stations, truck_count, population_size):
             permute = np.insert(permute, (counter + 1) * len(permute + counter) // truck_count, -counter)
             counter += 1
         inserted_genes.append(np.array(permute).reshape((-1,)))
+    # print(inserted_genes)
     return np.array(inserted_genes).reshape((population_size, -1))
 
 
@@ -180,6 +182,8 @@ def customized_crossover(algorithm):
         algorithm.Chrom[selected_chrom_id], \
         algorithm.Chrom[selected_chrom_id * 2] = \
             new_chrome_1, new_chrome_2
+    # print("~~~~~")
+    # print(new_chrome_1, new_chrome_2)
     return algorithm.Chrom
 
 
@@ -209,6 +213,7 @@ def chromosome2routelist(chrom):
         if gene > 0:
             route.append(gene)
         else:
-            route = []
             routes.append(route)
+            route = []
+    routes.append(route)
     return routes

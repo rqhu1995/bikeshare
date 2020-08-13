@@ -32,7 +32,7 @@ def ga_begin(ga):
     return best_x, best_y, ga
 
 
-all_stations = [station['station_id'] for station in cluster_info[conf.get_val('model_param', 'selected_cluster')]]
+all_stations = [station['station_id'] for station in cluster_info[int(conf.get_val('model_param', 'selected_cluster'))]]
 ga_instance = config_ga(fitness_function_rebalancing)
 ga_instance.Chrom = generate_feasible_population(all_stations, int(conf.get_val('model_param', 'truck_count')),
                                                  int(conf.get_val('ga_param', 'population_size')))
