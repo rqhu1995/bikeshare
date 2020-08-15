@@ -4,6 +4,7 @@ import numpy as np
 from geopy.distance import geodesic
 from more_itertools import pairwise
 from numpyencoder import NumpyEncoder
+
 import conf_reader as conf
 from database import cluster_info, station_info
 from database import max_capacity, initial_bike, distance_matrix, cluster_center
@@ -19,12 +20,15 @@ crossover_rate = float(conf.get_val('ga_param', 'crossover_rate'))
 mutation_rate = float(conf.get_val('ga_param', 'mutation_rate'))
 pop_size = int(conf.get_val('ga_param', 'population_size'))
 station_count = int(conf.get_val('model_param', 'station_count'))
+truncate_per_stage = int(conf.get_val('model_param', 'truncate_per_stage'))
 
 
 def truck_route_traverse(routes):
-    # print(routes)
+    station_service_status = {station: station_info[station]['demand'] for station in station_info.keys()}
+
     allocation = initial_bike
-    route_result = []
+    route_result = {'route_info': [], 'station_service_status': []}
+    fp_route_info = open('/Users/hurunqiu/project/static_ffbs/bikeshare/route_info.json', 'a+', encoding='utf-8')
     for route in routes:
         route_info = {
             'route': route,
@@ -32,49 +36,49 @@ def truck_route_traverse(routes):
             'working_time': 0,
             'actual_allocation': []
         }
-        truck_inventory = 0
-        for station, next_station in pairwise(route):
+        truck_inventory = truck_capacity // 2
+        # station_info = None
+        for station, next_station in pairwise(route + [route[-1]]):
             station_demand = station_info[station]['demand']
             if station_demand > 0:
                 delivery = min(truck_inventory, station_demand)
-                # print(station_demand)
                 truck_inventory -= delivery
                 allocation[station] = min(allocation[station] + delivery, max_capacity[station])
                 route_info['actual_allocation'].append(delivery)
+                station_service_status[station] -= delivery
             elif station_demand < 0:
                 pickup = min(-station_demand, truck_capacity - truck_inventory)
                 truck_inventory += pickup
                 allocation[station] = max(allocation[station] - pickup, 0)
                 route_info['actual_allocation'].append(-pickup)
+                station_service_status[station] += pickup
             route_info['distance_time'] += distance_matrix[station][next_station] / truck_velocity
             route_info['working_time'] += 1
-        # print(cluster_center[selected_cluster])
         dist_center_to_first = geodesic(
             (station_info[route[0]]['latitude'], station_info[route[0]]['longitude']),
             cluster_center[selected_cluster]).m
-        # print(dist_center_to_first)
         route_info['distance_time'] += 2 * dist_center_to_first / truck_velocity
-
-        route_result.append(route_info)
-    with open('/Users/hurunqiu/project/static_ffbs/bikeshare/route_info.json', 'a+', encoding='utf-8') as fp_route_info:
-        json.dump(route_result, fp_route_info, cls=NumpyEncoder)
+        route_result['route_info'].append(route_info)
+    route_result['station_service_status'] = station_service_status
+    json.dump(route_result, fp_route_info, cls=NumpyEncoder)
+    fp_route_info.write(',\n')
+    fp_route_info.close()
     return allocation, route_result
 
 
 def fitness_function_rebalancing(chrom):
-    # print(chrom)
     """
     一条路线确定好后，完整的调度成本计算
-    :param routes -- route数组的list
+    :param chrom -- route数组的list
     :return:
     """
     routes = chromosome2routelist(chrom)
     initial_available, all_routes_result = truck_route_traverse(routes)
-    with open('E:\\bikeshare\\result.json', 'w+', encoding='utf-8') as route_result:
-        json.dump(str(all_routes_result), fp=route_result)
+    # with open('E:\\bikeshare\\result.json', 'w+', encoding='utf-8') as route_result:
+    #     json.dump(str(all_routes_result), fp=route_result)
     fval_user = user_satisfaction(initial_available)
     max_time = -1
-    for route in all_routes_result:
+    for route in all_routes_result['route_info']:
         route_time = route['working_time'] + route['distance_time']
         if route_time >= max_time:
             max_time = route_time
@@ -99,7 +103,7 @@ def station_permutation(all_stations, population_size):
                 perms.update(key)
                 # (6) Break the endless loop
                 break
-        complete.append(station_to_np[perm])
+        complete.append(station_to_np[perm][:int(conf.get_val('model_param', 'truncate_per_stage'))])
     return complete
 
 
@@ -126,7 +130,7 @@ def generate_feasible_population(all_stations, truck_count, population_size):
 
 
 def ordered_cross_over(chrom_1, chrom_2):
-    gene_num = station_count
+    gene_num = truncate_per_stage
     new_chrome_1 = np.full((gene_num,), -100)
     new_chrome_2 = np.full((gene_num,), -100)
     inserted = [[], []]
@@ -189,12 +193,12 @@ def customized_crossover(algorithm):
 
 # 可行解的变异
 def customized_mutation(algorithm):
-    selected_mutation = 2 * np.random.choice(station_count // 2, int(station_count // 2 * mutation_rate),
+    selected_mutation = 2 * np.random.choice(truncate_per_stage // 2, int(truncate_per_stage // 2 * mutation_rate),
                                              replace=False)
     for selected in selected_mutation:
         chosen = algorithm.Chrom[selected].copy()
         chosen = chosen[chosen > 0]
-        n1, n2 = np.random.randint(0, station_count, 2)
+        n1, n2 = np.random.randint(0, truncate_per_stage, 2)
         seg1, seg2 = chosen[n1], chosen[n2]
         chosen[n1], chosen[n2] = seg2, seg1
         counter = 0
