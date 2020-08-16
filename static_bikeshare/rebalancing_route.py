@@ -6,7 +6,7 @@ from more_itertools import pairwise
 from numpyencoder import NumpyEncoder
 
 import conf_reader as conf
-from database import cluster_info, station_info
+from database import cluster_info, station_info, truck_inventory_preset, first_stage, center
 from database import max_capacity, initial_bike, distance_matrix, cluster_center
 from static_bikeshare.demand_calculation import user_satisfaction
 
@@ -28,7 +28,8 @@ def truck_route_traverse(routes):
 
     allocation = initial_bike
     route_result = {'route_info': [], 'station_service_status': []}
-    fp_route_info = open('/Users/hurunqiu/project/static_ffbs/bikeshare/route_info.json', 'a+', encoding='utf-8')
+    fp_route_info = open('resources/exp_result/route_info.json', 'a+', encoding='utf-8')
+    truck = 0
     for route in routes:
         route_info = {
             'route': route,
@@ -36,8 +37,12 @@ def truck_route_traverse(routes):
             'working_time': 0,
             'actual_allocation': []
         }
-        truck_inventory = truck_capacity // 2
+        # truck_inventory = truck_capacity // 2
         # station_info = None
+        if route == routes[0]:
+            truck_inventory = truck_inventory_preset[0]
+        else:
+            truck_inventory = truck_inventory_preset[1]
         for station, next_station in pairwise(route + [route[-1]]):
             station_demand = station_info[station]['demand']
             if station_demand > 0:
@@ -54,11 +59,17 @@ def truck_route_traverse(routes):
                 station_service_status[station] += pickup
             route_info['distance_time'] += distance_matrix[station][next_station] / truck_velocity
             route_info['working_time'] += 1
-        dist_center_to_first = geodesic(
-            (station_info[route[0]]['latitude'], station_info[route[0]]['longitude']),
-            cluster_center[selected_cluster]).m
-        route_info['distance_time'] += 2 * dist_center_to_first / truck_velocity
+        if first_stage:
+            dist_center_to_first = geodesic(
+                (station_info[route[0]]['latitude'], station_info[route[0]]['longitude']),
+                cluster_center[selected_cluster]).m
+        else:
+            dist_center_to_first = geodesic(
+                (center[truck]['latitude'], center[truck]['longitude']),
+                cluster_center[selected_cluster]).m
+        route_info['distance_time'] += 1 * dist_center_to_first / truck_velocity
         route_result['route_info'].append(route_info)
+        truck += 1
     route_result['station_service_status'] = station_service_status
     json.dump(route_result, fp_route_info, cls=NumpyEncoder)
     fp_route_info.write(',\n')
@@ -74,16 +85,18 @@ def fitness_function_rebalancing(chrom):
     """
     routes = chromosome2routelist(chrom)
     initial_available, all_routes_result = truck_route_traverse(routes)
-    # with open('E:\\bikeshare\\result.json', 'w+', encoding='utf-8') as route_result:
-    #     json.dump(str(all_routes_result), fp=route_result)
     fval_user = user_satisfaction(initial_available)
     max_time = -1
+    penalty = 0
     for route in all_routes_result['route_info']:
         route_time = route['working_time'] + route['distance_time']
         if route_time >= max_time:
             max_time = route_time
+        for idx in range(len(route['route'])):
+            penalty += abs(route['actual_allocation'][idx] -
+                           station_info[route['route'][idx]]['demand'])
     fval_cart = max_time * time_cost
-    return fval_cart - fval_user
+    return -fval_cart - penalty
 
 
 def station_permutation(all_stations, population_size):
@@ -103,7 +116,9 @@ def station_permutation(all_stations, population_size):
                 perms.update(key)
                 # (6) Break the endless loop
                 break
-        complete.append(station_to_np[perm][:int(conf.get_val('model_param', 'truncate_per_stage'))])
+        complete.append(station_to_np[perm][:int(
+            conf.get_val('model_param', 'truncate_per_stage')
+        )])
     return complete
 
 
@@ -122,10 +137,10 @@ def generate_feasible_population(all_stations, truck_count, population_size):
     for permute in all_station_perm:
         counter = 0
         while counter < truck_count - 1:
-            permute = np.insert(permute, (counter + 1) * len(permute + counter) // truck_count, -counter)
+            permute = np.insert(permute, (counter + 1) * len(permute + counter) // truck_count,
+                                -counter)
             counter += 1
         inserted_genes.append(np.array(permute).reshape((-1,)))
-    # print(inserted_genes)
     return np.array(inserted_genes).reshape((population_size, -1))
 
 
@@ -145,7 +160,6 @@ def ordered_cross_over(chrom_1, chrom_2):
     new_chrome_1[split_points[0] + 1: split_points[1] + 1] = chrom_1[split_points[0] + 1: split_points[1] + 1]
     new_chrome_2[split_points[0] + 1: split_points[1] + 1] = chrom_2[split_points[0] + 1: split_points[1] + 1]
 
-    # print(new_chrome_1)
     inserted[0][split_points[0] + 1: split_points[1] + 1] = [True] * (split_points[1] - split_points[0])
     inserted[1][split_points[0] + 1: split_points[1] + 1] = [True] * (split_points[1] - split_points[0])
     origin_idx = split_points[1] + 1
@@ -156,7 +170,6 @@ def ordered_cross_over(chrom_1, chrom_2):
         new_chrome_2[new_idx] = chrom_1[origin_idx]
         inserted[1][new_idx] = True
         new_idx = (new_idx + 1) % gene_num
-        # print(new_chrome_2)
     origin_idx = split_points[1] + 1
     new_idx = split_points[1] + 1
     while False in inserted[0]:
@@ -186,8 +199,6 @@ def customized_crossover(algorithm):
         algorithm.Chrom[selected_chrom_id], \
         algorithm.Chrom[selected_chrom_id * 2] = \
             new_chrome_1, new_chrome_2
-    # print("~~~~~")
-    # print(new_chrome_1, new_chrome_2)
     return algorithm.Chrom
 
 

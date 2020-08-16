@@ -1,5 +1,8 @@
 import json
+import time
+
 import numpy as np
+
 import conf_reader as conf
 from database import cluster_info
 from sko.GA import GA
@@ -25,12 +28,13 @@ def config_ga(fitness_fun, lower_bound=None, upper_bound=None, constraint_ueq=No
         ga.register(operator_name='crossover', operator=customized_crossover)
     if mutation_type == 'customized':
         ga.register(operator_name='mutation', operator=customized_mutation)
-    # ga.register(operator_name='selection', operator=selection.selection_tournament)
     return ga
 
 
 def ga_begin(ga):
+    t = time.time()
     best_x, best_y = ga.run()
+    print('遗传算法运行时长：' + str(time.time() - t))
     print(best_x, best_y)
     return best_x, best_y, ga
 
@@ -41,7 +45,7 @@ ga_instance.Chrom = generate_feasible_population(all_stations, int(conf.get_val(
                                                  int(conf.get_val('ga_param', 'population_size')))
 # print(ga_instance.Chrom.shape)
 best_route = ga_begin(ga_instance)[0]
-route_fp = open('/Users/hurunqiu/project/static_ffbs/bikeshare/route_info.json', encoding='utf-8')
+route_fp = open('resources/exp_result/route_info.json', encoding='utf-8')
 all_routes = route_fp.readlines()
 final_json = '['
 for route in all_routes:
@@ -54,7 +58,7 @@ for record in final_routes:
     if record['route_info'][0]['route'] + [0] + record['route_info'][1]['route'] == list(best_route):
         best_record = record
         break
-best_route_fp = open('/Users/hurunqiu/project/static_ffbs/bikeshare/best_route.json', mode='a+', encoding='utf-8')
+best_route_fp = open('resources/exp_result/best_route.json', mode='a+', encoding='utf-8')
 json.dump(best_record, best_route_fp)
 best_route_fp.write('\n卡车1剩余车辆数：' +
                     str(30 - np.sum(best_record['route_info'][0]['actual_allocation'])) + '\n'

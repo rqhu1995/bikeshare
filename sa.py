@@ -25,6 +25,7 @@ def run_SA():
     sa_tsp = SA_TSP(func=fitness_function_rebalancing, x0=x0, T_max=1000, T_min=1, L=1000)
     best_points, best_distance = sa_tsp.run()
     print(best_points, best_distance)
+
     # min_val = np.inf
     # best_routes = None
     # for k in sa_gene_record[str(best_points)]:

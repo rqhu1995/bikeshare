@@ -1,7 +1,8 @@
 import numpy as np
+
 import conf_reader as conf
 import database as db
-# print(conf.cfg_file)
+
 station_count = int(conf.get_val('model_param', 'station_count'))
 bike_count = int(conf.get_val('model_param', 'bike_count'))
 
